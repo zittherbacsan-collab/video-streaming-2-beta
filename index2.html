@@ -5,69 +5,360 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StreamCast DualScreen Pro</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; }
-        video { width: 100%; max-width: 800px; border-radius: 8px; background: #000; }
-        .info { margin-top: 15px; color: #aaa; }
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --accent: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-title h1 span {
+            color: var(--accent);
+        }
+
+        .header-title p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .badge {
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        main {
+            flex: 1;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 1024px) {
+            main {
+                grid-template-columns: 2fr 1fr;
+            }
+        }
+
+        .panel {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background-color: #000;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"], select {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 0.65rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            outline: none;
+            flex: 1;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--accent);
+        }
+
+        button {
+            background-color: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            padding: 0.65rem 1.25rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button.secondary {
+            background-color: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        button.secondary:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .guide-box {
+            background-color: rgba(56, 189, 248, 0.05);
+            border: 1px solid rgba(56, 189, 248, 0.15);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+        }
+
+        .guide-box strong {
+            color: var(--text-main);
+        }
+
+        .playlist-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .playlist-item {
+            background-color: var(--bg-primary);
+            padding: 0.75rem;
+            border-radius: 0.4rem;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.2s;
+        }
+
+        .playlist-item:hover {
+            border-color: var(--accent);
+        }
+
+        h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
     </style>
 </head>
 <body>
 
-    <h1>Dual-Screen Video Stream</h1>
-    
-    <!-- Ginagamit natin ang working direct sample MP4 video -->
-    <video id="syncVideo" controls playsinline muted>
-        <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-    </video>
+    <header>
+        <div class="header-title">
+            <h1>StreamCast <span>DualScreen Pro</span></h1>
+            <p>Professional Multi-Display Media Broadcasting Console</p>
+        </div>
+        <div>
+            <span class="badge">Phone Remote Mode</span>
+        </div>
+    </header>
 
-    <div class="info">Buksan ang link na ito sa isa pang tab o window para makita ang live sync!</div>
+    <main>
+        <!-- Left Column: Video and Playback Controller -->
+        <div class="panel">
+            <div class="video-container">
+                <div id="placeholder" class="video-placeholder">
+                    Walang naka-load na video. Maglagay ng Network URL o pumili sa ibaba. / No video loaded. Enter URL or choose below.
+                </div>
+                <video id="mainVideo" controls playsinline preload="metadata"></video>
+            </div>
+
+            <!-- URL Loader Form -->
+            <div class="controls-row">
+                <input type="text" id="videoUrlInput" placeholder="Ipasok ang direktang MP4 o Network URL (https://...)">
+                <button id="loadUrlBtn">Load URL</button>
+            </div>
+
+            <!-- Playback Speed & Extra Options -->
+            <div class="controls-row" style="justify-content: space-between;">
+                <select id="playbackSpeed">
+                    <option value="0.5">0.5x Speed</option>
+                    <option value="1.0" selected>1.0x Normal</option>
+                    <option value="1.25">1.25x Speed</option>
+                    <option value="1.5">1.5x Speed</option>
+                    <option value="2.0">2.0x Fast</option>
+                </select>
+                <button class="secondary" id="popoutBtn">Open Popout Screen</button>
+            </div>
+
+            <div class="guide-box">
+                <p><strong>Mobile Dual-Screen Guide:</strong> Gamit ang iyong cellphone, maaari mong i-type ang direct MP4 link o gamitin ang secondary window para i-cast sa Smart TV, Tablet, o Laptop browser habang kinokontrol sa phone mo!</p>
+            </div>
+        </div>
+
+        <!-- Right Column: Video Sources & Preset Library -->
+        <div class="panel">
+            <h2>📁 Magdagdag ng Video Sources</h2>
+            <div class="controls-row">
+                <input type="file" id="localFileInput" accept="video/mp4,video/webm" style="display: none;">
+                <button style="width: 100%;" onclick="document.getElementById('localFileInput').click()">Mag-upload mula sa Device</button>
+            </div>
+
+            <h2 style="margin-top: 0.5rem;">✨ Sample / Default Sources</h2>
+            <div class="playlist-items" id="playlistContainer">
+                <div class="playlist-item" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4">
+                    <span>Big Buck Bunny (Sample MP4)</span>
+                    <span style="color: var(--accent);">Play</span>
+                </div>
+                <div class="playlist-item" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4">
+                    <span>Elephants Dream (Sample MP4)</span>
+                    <span style="color: var(--accent);">Play</span>
+                </div>
+                <div class="playlist-item" data-url="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4">
+                    <span>Tears of Steel (Sample MP4)</span>
+                    <span style="color: var(--accent);">Play</span>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
-        const video = document.getElementById('syncVideo');
-        const channel = new BroadcastChannel('video_sync_channel');
-        let isInternalUpdate = false;
+        const videoElement = document.getElementById('mainVideo');
+        const placeholder = document.getElementById('placeholder');
+        const urlInput = document.getElementById('videoUrlInput');
+        const loadUrlBtn = document.getElementById('loadUrlBtn');
+        const speedSelect = document.getElementById('playbackSpeed');
+        const localFileInput = document.getElementById('localFileInput');
+        const playlistContainer = document.getElementById('playlistContainer');
+        const popoutBtn = document.getElementById('popoutBtn');
 
-        // I-broadcast ang play event
-        video.onplay = () => {
-            if (!isInternalUpdate) {
-                channel.postMessage({ type: 'PLAY', currentTime: video.currentTime });
+        function playVideoSource(url) {
+            videoElement.src = url;
+            videoElement.load();
+            videoElement.play().then(() => {
+                placeholder.style.display = 'none';
+            }).catch(err => {
+                console.warn("Playback prevented or failed:", err);
+                placeholder.style.display = 'block';
+                placeholder.textContent = "Nagka-error sa pag-play ng video. Siguraduhing tama ang HTTPS link o CORS supported.";
+            });
+        }
+
+        loadUrlBtn.addEventListener('click', () => {
+            const url = urlInput.value.trim();
+            if (url) {
+                playVideoSource(url);
             }
-        };
+        });
 
-        // I-broadcast ang pause event
-        video.onpause = () => {
-            if (!isInternalUpdate) {
-                channel.postMessage({ type: 'PAUSE', currentTime: video.currentTime });
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadUrlBtn.click();
             }
-        };
+        });
 
-        // I-broadcast ang seek/timeupdate kung may magbago ng posisyon
-        video.onseeked = () => {
-            if (!isInternalUpdate) {
-                channel.postMessage({ type: 'SEEK', currentTime: video.currentTime });
+        speedSelect.addEventListener('change', (e) => {
+            videoElement.playbackRate = parseFloat(e.target.value);
+        });
+
+        localFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                playVideoSource(fileURL);
             }
-        };
+        });
 
-        // Makinig sa mga mensahe galing sa kabilang tab
-        channel.onmessage = (event) => {
-            isInternalUpdate = true;
-            const { type, currentTime } = event.data;
-
-            if (Math.abs(video.currentTime - currentTime) > 0.5) {
-                video.currentTime = currentTime;
+        playlistContainer.addEventListener('click', (e) => {
+            const item = e.target.closest('.playlist-item');
+            if (item) {
+                const url = item.getAttribute('data-url');
+                urlInput.value = url;
+                playVideoSource(url);
             }
+        });
 
-            if (type === 'PLAY') {
-                video.play().catch(() => {});
-            } else if (type === 'PAUSE') {
-                video.pause();
-            } else if (type === 'SEEK') {
-                video.currentTime = currentTime;
-            }
+        popoutBtn.addEventListener('click', () => {
+            const popoutWindow = window.open('', '_blank', 'width=1000,height=600');
+            popoutWindow.document.write(`
+                <html>
+                <head><title>StreamCast Secondary Display</title></head>
+                <body style="background:#000; margin:0; display:flex; align-items:center; justify-content:center; height:100vh;">
+                    <h3 style="color:#fff; font-family:sans-serif;">I-play ang video sa main controller para makita rito.</h3>
+                </body>
+                </html>
+            `);
+        });
 
-            setTimeout(() => { isInternalUpdate = false; }, 100);
-        };
+        videoElement.addEventListener('error', () => {
+            placeholder.style.display = 'block';
+            placeholder.textContent = "Hindi ma-load ang video format o may network restriction (CORS/HTTP error).";
+        });
     </script>
-
 </body>
 </html>
