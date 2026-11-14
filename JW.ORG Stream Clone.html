@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JW Stream / Media Library Clone</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        jwblue: {
+                            50: '#eef6fc',
+                            100: '#d7eaf8',
+                            500: '#1e68b2',
+                            600: '#16508d',
+                            700: '#113f70',
+                            800: '#0c2e52',
+                            900: '#071d35'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for media shelves */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            
+            <!-- Left: Mobile Menu Toggle & Brand Logo -->
+            <div class="flex items-center gap-3">
+                <button id="sidebarToggle" class="lg:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg focus:outline-none">
+                    <i class="fa-solid fa-bars text-lg"></i>
+                </button>
+                <div class="flex items-center gap-2 cursor-pointer" onclick="resetFilter()">
+                    <div class="bg-jwblue-600 text-white font-bold text-xl px-2.5 py-1 rounded tracking-wider flex items-center gap-1.5 shadow-sm">
+                        <i class="fa-solid fa-play text-sm"></i> JW.ORG
+                    </div>
+                    <span class="hidden sm:inline-block text-xs font-semibold uppercase tracking-widest text-jwblue-600 dark:text-jwblue-400 border border-jwblue-600 dark:border-jwblue-400 px-1.5 py-0.5 rounded">Stream</span>
+                </div>
+            </div>
+
+            <!-- Center: Search Bar -->
+            <div class="flex-1 max-w-xl mx-2">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                        <i class="fa-solid fa-search"></i>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Search videos, music, programs, or conventions..." 
+                        class="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border border-transparent focus:border-jwblue-500 dark:focus:border-jwblue-400 rounded-full text-sm text-gray-800 dark:text-gray-200 focus:outline-none focus:bg-white dark:focus:bg-gray-900 transition shadow-inner">
+                </div>
+            </div>
+
+            <!-- Right: Actions (Language, Theme, User) -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Language Selector -->
+                <button onclick="openModal('langModal')" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
+                    <i class="fa-solid fa-globe text-jwblue-600 dark:text-jwblue-400"></i>
+                    <span class="hidden sm:inline">English</span>
+                </button>
+
+                <!-- Theme Toggle -->
+                <button onclick="toggleDarkMode()" class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition" title="Toggle Dark/Light Mode">
+                    <i id="themeIcon" class="fa-solid fa-moon"></i>
+                </button>
+
+                <!-- Sign In Button -->
+                <button onclick="openModal('authModal')" class="bg-jwblue-600 hover:bg-jwblue-700 text-white font-medium text-sm px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2">
+                    <i class="fa-solid fa-user"></i>
+                    <span class="hidden sm:inline">Sign In</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout Container -->
+    <div class="flex-1 flex max-w-7xl w-full mx-auto">
+
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform -translate-x-full lg:translate-x-0 lg:static lg:block transition-transform duration-200 pt-16 lg:pt-0">
+            <div class="h-full flex flex-col justify-between p-4 overflow-y-auto">
+                <div class="space-y-6">
+                    <!-- Navigation Categories -->
+                    <div>
+                        <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Discover</p>
+                        <nav class="space-y-1">
+                            <a href="#" onclick="filterCategory('all'); closeMobileSidebar(); return false;" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-jwblue-600 dark:text-jwblue-400 bg-jwblue-50 dark:bg-gray-800 transition active-cat" data-cat="all">
+                                <i class="fa-solid fa-house w-5 text-center"></i> Home
+                            </a>
+                            <a href="#" onclick="filterCategory('featured'); closeMobileSidebar(); return false;" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition" data-cat="featured">
+                                <i class="fa-solid fa-star w-5 text-center"></i> Featured Videos
+                            </a>
+                            <a href="#" onclick="filterCategory('broadcasting'); closeMobileSidebar(); return false;" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition" data-cat="broadcasting">
+                                <i class="fa-solid fa-tv w-5 text-center"></i> JW Broadcasting
+                            </a>
+                            <a href="#" onclick="filterCategory('music'); closeMobileSidebar(); return false;" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition" data-cat="music">
+                                <i class="fa-solid fa-music w-5 text-center"></i> Music & Songs
+                            </a>
+                            <a href="#" onclick="filterCategory('dramas'); closeMobileSidebar(); return false;" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition" data-cat="dramas">
+                                <i class="fa-solid fa-masks-theater w-5 text-center"></i> Audio Dramas
+                            </a>
+                            <a href="#" onclick="filterCategory('conventions'); closeMobileSidebar(); return false;" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition" data-cat="conventions">
+                                <i class="fa-solid fa-calendar-days w-5 text-center"></i> Conventions
+                            </a>
+                        </nav>
+                    </div>
+
+                    <div>
+                        <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">My Library</p>
+                        <nav class="space-y-1">
+                            <a href="#" onclick="showNotification('Watchlist feature requires sign in.'); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                <i class="fa-solid fa-bookmark w-5 text-center"></i> Watch Later
+                            </a>
+                            <a href="#" onclick="showNotification('Favorites list is empty.'); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                <i class="fa-solid fa-heart w-5 text-center"></i> Favorites
+                            </a>
+                            <a href="#" onclick="showNotification('History cleared.'); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                <i class="fa-solid fa-clock-rotate-left w-5 text-center"></i> History
+                            </a>
+                        </nav>
+                    </div>
+                </div>
+
+                <!-- Sidebar Footer Info -->
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-800 text-xs text-gray-500 space-y-2">
+                    <p>&copy; 2026 Watch Tower Bible and Tract Society of Pennsylvania.</p>
+                    <div class="flex gap-2 text-jwblue-600 dark:text-jwblue-400 font-medium">
+                        <a href="#" class="hover:underline">Terms of Use</a>
+                        <span>•</span>
+                        <a href="#" class="hover:underline">Privacy Policy</a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Sidebar Backdrop for mobile -->
+        <div id="sidebarBackdrop" onclick="closeMobileSidebar()" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"></div>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+
+            <!-- Hero Featured Banner (Only shown on 'all' or 'featured' view) -->
+            <div id="heroSection" class="mb-10">
+                <div class="relative rounded-2xl overflow-hidden bg-gradient-to-r from-jwblue-900 to-gray-900 text-white shadow-xl">
+                    <div class="absolute inset-0 opacity-40 mix-blend-overlay">
+                        <img src="https://placehold.co/1200x600/113f70/ffffff?text=JW+Broadcasting" alt="Hero background" class="w-full h-full object-cover">
+                    </div>
+                    <div class="relative z-10 p-6 sm:p-10 lg:p-12 flex flex-col justify-end min-h-[380px] sm:min-h-[420px] max-w-3xl">
+                        <span class="inline-block bg-jwblue-600 text-white text-xs font-semibold uppercase px-3 py-1 rounded-full w-fit mb-3 shadow">Featured Release</span>
+                        <h1 class="text-2xl sm:text-4xl font-bold tracking-tight mb-3">2026 Governing Body Update #1</h1>
+                        <p class="text-gray-200 text-sm sm:text-base mb-6 line-clamp-3">Hear encouraging spiritual thoughts and exciting updates regarding the global preaching work, construction projects, and organizational announcements.</p>
+                        
+                        <div class="flex flex-wrap items-center gap-3">
+                            <button onclick="openVideoModal({title: '2026 Governing Body Update #1', category: 'JW Broadcasting', duration: '42:15', desc: 'In this special release, a member of the Governing Body shares encouraging thoughts from the Scriptures along with exciting milestones from around the world.', videoId: 'gov2026-1'})" 
+                                class="bg-white text-gray-900 hover:bg-gray-100 font-semibold px-6 py-3 rounded-xl shadow-lg transition flex items-center gap-2.5">
+                                <i class="fa-solid fa-play text-jwblue-600"></i> Play Video
+                            </button>
+                            <button onclick="showNotification('Added to Favorites')" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-medium px-4 py-3 rounded-xl transition flex items-center gap-2">
+                                <i class="fa-solid fa-heart"></i> Favorite
+                            </button>
+                            <button onclick="copyShareLink()" class="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-medium px-4 py-3 rounded-xl transition flex items-center gap-2">
+                                <i class="fa-solid fa-share-nodes"></i> Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Media Shelves Container -->
+            <div id="contentContainer" class="space-y-10">
+                <!-- Shelves rendered by JavaScript -->
+            </div>
+
+            <!-- Search Results State Container (hidden by default) -->
+            <div id="searchResultsContainer" class="hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-gray-800 dark:text-gray-100">Search Results (<span id="searchCount">0</span>)</h2>
+                    <button onclick="resetFilter()" class="text-sm font-medium text-jwblue-600 dark:text-jwblue-400 hover:underline">Clear Search</button>
+                </div>
+                <div id="searchResultsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Video Player / Details Modal -->
+    <div id="videoModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-2 sm:p-4">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-5xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh] border border-gray-200 dark:border-gray-800 animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+                <div class="flex items-center gap-3">
+                    <span id="modalCategoryBadge" class="bg-jwblue-100 dark:bg-jwblue-900/60 text-jwblue-700 dark:text-jwblue-300 text-xs font-semibold px-2.5 py-1 rounded">Category</span>
+                    <h3 id="modalTitle" class="text-lg font-bold text-gray-900 dark:text-gray-100 truncate max-w-md sm:max-w-xl">Video Title</h3>
+                </div>
+                <button onclick="closeVideoModal()" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Video Player Area -->
+            <div class="relative bg-black aspect-video w-full flex items-center justify-center group">
+                <!-- Mock Video Player Interface -->
+                <div id="playerPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-white bg-gradient-to-t from-black/80 via-black/40 to-black/20">
+                    <button onclick="togglePlayState()" class="w-20 h-20 bg-jwblue-600 hover:bg-jwblue-500 rounded-full flex items-center justify-center shadow-2xl transition transform hover:scale-105">
+                        <i id="playPauseIcon" class="fa-solid fa-play text-2xl ml-1"></i>
+                    </button>
+                    <p id="playerStateText" class="mt-4 text-sm font-medium tracking-wide text-gray-300">Click to Play Media Preview</p>
+                </div>
+                
+                <!-- Simulated Video Controls Overlay -->
+                <div class="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/90 to-transparent flex items-center justify-between text-white text-sm opacity-90 transition">
+                    <div class="flex items-center gap-4">
+                        <button onclick="togglePlayState()"><i id="barPlayIcon" class="fa-solid fa-play"></i></button>
+                        <span id="currentTime">00:00</span> / <span id="totalDuration">--:--</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="showNotification('Subtitles: English (CC)')" title="Subtitles"><i class="fa-solid fa-closed-captioning"></i></button>
+                        <button onclick="showNotification('Quality: 1080p HD')" title="Settings"><i class="fa-solid fa-gear"></i></button>
+                        <button onclick="toggleFullscreen()" title="Fullscreen"><i class="fa-solid fa-expand"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Details & Actions -->
+            <div class="p-6 overflow-y-auto space-y-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <p id="modalDuration" class="text-sm font-medium text-gray-500 dark:text-gray-400"><i class="fa-regular fa-clock mr-1"></i> Duration: 15:00</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="showNotification('Downloaded successfully to device')" class="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium px-4 py-2 rounded-xl text-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-download"></i> Download
+                        </button>
+                        <button onclick="showNotification('Added to Favorites')" class="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium px-4 py-2 rounded-xl text-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-heart text-red-500"></i> Favorite
+                        </button>
+                        <button onclick="copyShareLink()" class="bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-medium px-4 py-2 rounded-xl text-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-share-nodes"></i> Share
+                        </button>
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-200 dark:border-gray-800 pt-4">
+                    <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">Description</h4>
+                    <p id="modalDesc" class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                        Detailed description of the video goes here. This includes spiritual highlights, scriptural themes, and release context.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Language Selection Modal -->
+    <div id="langModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Select Language</h3>
+                <button onclick="closeModal('langModal')" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-sm text-gray-500">Choose your preferred viewing language for the JW Stream portal.</p>
+            <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <button onclick="setLanguage('English')" class="w-full text-left px-4 py-3 rounded-xl bg-jwblue-50 dark:bg-gray-800 text-jwblue-700 dark:text-jwblue-300 font-medium text-sm flex items-center justify-between">
+                    <span>English</span> <i class="fa-solid fa-check"></i>
+                </button>
+                <button onclick="setLanguage('Tagalog')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-sm">Tagalog</button>
+                <button onclick="setLanguage('Cebuano')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-sm">Cebuano</button>
+                <button onclick="setLanguage('Spanish')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-sm">Español</button>
+                <button onclick="setLanguage('French')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-sm">Français</button>
+                <button onclick="setLanguage('Japanese')" class="w-full text-left px-4 py-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium text-sm">日本語</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign In Modal -->
+    <div id="authModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-900 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-gray-200 dark:border-gray-800 space-y-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="bg-jwblue-600 text-white font-bold px-2 py-0.5 rounded text-sm">JW</div>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">Sign In to Account</h3>
+                </div>
+                <button onclick="closeModal('authModal')" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="handleAuth(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Email or Username</label>
+                    <input type="text" required placeholder="name@example.com" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:border-jwblue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-gray-500 mb-1">Password</label>
+                    <input type="password" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:border-jwblue-500">
+                </div>
+                <button type="submit" class="w-full bg-jwblue-600 hover:bg-jwblue-700 text-white font-semibold py-3 rounded-xl shadow transition">Sign In</button>
+            </form>
+            <p class="text-xs text-center text-gray-500">Protected by secure authentication. Account allows syncing favorites across devices.</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 transform translate-y-20 opacity-0 transition-all duration-300 font-medium text-sm">
+        <i class="fa-solid fa-circle-check text-green-400 dark:text-green-600"></i>
+        <span id="toastMessage">Action completed successfully.</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Comprehensive Media Database mimicking stream.jw.org categories
+        const mediaDatabase = [
+            {
+                id: 1,
+                title: "2026 Governing Body Update #1",
+                category: "featured",
+                categoryName: "Featured Videos",
+                duration: "42:15",
+                image: "https://placehold.co/600x340/113f70/ffffff?text=Governing+Body+Update",
+                desc: "In this special release, a member of the Governing Body shares encouraging thoughts from the Scriptures along with exciting milestones from around the world."
+            },
+            {
+                id: 2,
+                title: "Always Rejoice in Jehovah",
+                category: "music",
+                categoryName: "Music & Songs",
+                duration: "04:30",
+                image: "https://placehold.co/600x340/1a659e/ffffff?text=Original+Song",
+                desc: "An uplifting original song highlighting how drawing close to Jehovah brings deep inner joy regardless of life's trials."
+            },
+            {
+                id: 3,
+                title: "The Story of Nehemiah: 'The Joy of Jehovah is Your Stronghold'",
+                category: "dramas",
+                categoryName: "Audio Dramas",
+                duration: "1:15:20",
+                image: "https://placehold.co/600x340/0f4c5c/ffffff?text=Audio+Drama",
+                desc: "Immersive audio dramatization recounting the rebuilding of Jerusalem's walls under Nehemiah's courageous leadership."
+            },
+            {
+                id: 4,
+                title: "2026 Regional Convention: 'Declare the Good News!' - Saturday Program",
+                category: "conventions",
+                categoryName: "Conventions",
+                duration: "3:45:10",
+                image: "https://placehold.co/600x340/e36414/ffffff?text=Convention+2026",
+                desc: "The full Saturday session of the 2026 global regional convention featuring symphosiums, interviews, and the morning keynote discourse."
+            },
+            {
+                id: 5,
+                title: "JW Broadcasting – January 2026",
+                category: "broadcasting",
+                categoryName: "JW Broadcasting",
+                duration: "1:02:40",
+                image: "https://placehold.co/600x340/2b2d42/ffffff?text=JW+Broadcasting",
+                desc: "Monthly program hosted by a member of the Governing Body with experiences from branch offices and faithful youth worldwide."
+            },
+            {
+                id: 6,
+                title: "Young People Ask — How Can I Make Real Friends?",
+                category: "featured",
+                categoryName: "Featured Videos",
+                duration: "18:45",
+                image: "https://placehold.co/600x340/3a86ff/ffffff?text=Young+People+Ask",
+                desc: "Practical whiteboard animation and interviews exploring how teenagers can find wholesome friendships that encourage spiritual goals."
+            },
+            {
+                id: 7,
+                title: "Sing Praise to Jehovah — Choral Collection Vol. 4",
+                category: "music",
+                categoryName: "Music & Songs",
+                duration: "45:00",
+                image: "https://placehold.co/600x340/8338ec/ffffff?text=Choral+Music",
+                desc: "A stunning collection of symphonic arrangements of Kingdom melodies recorded by full orchestra and chorus."
+            },
+            {
+                id: 8,
+                title: "The Book of Jonah: A Lesson in Compassion",
+                category: "dramas",
+                categoryName: "Audio Dramas",
+                duration: "48:12",
+                image: "https://placehold.co/600x340/fb5607/ffffff?text=Jonah+Drama",
+                desc: "Experience the dramatic account of the prophet Jonah, his eventful voyage, and Jehovah's immense mercy toward Nineveh."
+            },
+            {
+                id: 9,
+                title: "JW Broadcasting – February 2026",
+                category: "broadcasting",
+                categoryName: "JW Broadcasting",
+                duration: "58:30",
+                image: "https://placehold.co/600x340/ff006e/ffffff?text=Broadcasting+Feb",
+                desc: "Featuring reports on disaster relief efforts and interviews with missionaries serving in remote island territories."
+            }
+        ];
+
+        // Current filter state
+        let currentCategory = 'all';
+
+        // Initialize application shelves on load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderShelves();
+            setupSearchListener();
+        });
+
+        // Render Media Shelves based on category data
+        function renderShelves() {
+            const container = document.getElementById('contentContainer');
+            container.innerHTML = '';
+
+            const categories = [
+                { key: 'featured', name: 'Featured Videos' },
+                { key: 'broadcasting', name: 'JW Broadcasting' },
+                { key: 'music', name: 'Music & Songs' },
+                { key: 'dramas', name: 'Audio Dramas' },
+                { key: 'conventions', name: 'Conventions' }
+            ];
+
+            categories.forEach(cat => {
+                const items = mediaDatabase.filter(item => item.category === cat.key);
+                if (items.length === 0) return;
+
+                const shelfDiv = document.createElement('div');
+                shelfDiv.className = 'space-y-4';
+                shelfDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-jwblue-600 rounded-full inline-block"></span>
+                            ${cat.name}
+                        </h2>
+                        <button onclick="filterCategory('${cat.key}')" class="text-xs font-semibold text-jwblue-600 dark:text-jwblue-400 hover:underline uppercase tracking-wider">View All</button>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                        ${items.map(item => createVideoCardHtml(item)).join('')}
+                    </div>
+                `;
+                container.appendChild(shelfDiv);
+            });
+        }
+
+        // Generate HTML for individual video card
+        function createVideoCardHtml(item) {
+            return `
+                <div onclick="openVideoModal(${JSON.stringify(item).replace(/"/g, '&quot;')})" 
+                     class="group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col">
+                    <div class="relative aspect-video bg-gray-200 dark:bg-gray-800 overflow-hidden">
+                        <img src="${item.image}" alt="${item.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x340/113f70/ffffff?text=JW.ORG+Video'">
+                        <div class="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded">
+                            ${item.duration}
+                        </div>
+                        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <div class="w-12 h-12 bg-jwblue-600 text-white rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition">
+                                <i class="fa-solid fa-play ml-0.5"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between space-y-2">
+                        <div>
+                            <span class="text-xs font-semibold text-jwblue-600 dark:text-jwblue-400 uppercase tracking-wider">${item.categoryName}</span>
+                            <h3 class="font-bold text-gray-900 dark:text-gray-100 text-sm line-clamp-2 mt-1 group-hover:text-jwblue-600 transition">${item.title}</h3>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">${item.desc}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Filter media category via sidebar or shelf header
+        function filterCategory(catKey) {
+            currentCategory = catKey;
+            
+            // Highlight active sidebar link
+            document.querySelectorAll('.sidebar-link').forEach(link => {
+                if (link.getAttribute('data-cat') === catKey) {
+                    link.classList.add('bg-jwblue-50', 'dark:bg-gray-800', 'text-jwblue-600', 'dark:text-jwblue-400');
+                    link.classList.remove('text-gray-600', 'dark:text-gray-300');
+                } else {
+                    link.classList.remove('bg-jwblue-50', 'dark:bg-gray-800', 'text-jwblue-600', 'dark:text-jwblue-400');
+                    link.classList.add('text-gray-600', 'dark:text-gray-300');
+                }
+            });
+
+            const hero = document.getElementById('heroSection');
+            const shelvesContainer = document.getElementById('contentContainer');
+            const searchContainer = document.getElementById('searchResultsContainer');
+            
+            searchContainer.classList.add('hidden');
+
+            if (catKey === 'all') {
+                hero.classList.remove('hidden');
+                shelvesContainer.classList.remove('hidden');
+                renderShelves();
+            } else {
+                hero.classList.add('hidden');
+                shelvesContainer.classList.remove('hidden');
+                
+                const filtered = mediaDatabase.filter(item => item.category === catKey);
+                shelvesContainer.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-4">
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 capitalize">${catKey.replace('-', ' & ')}</h2>
+                            <button onclick="resetFilter()" class="text-sm font-medium text-jwblue-600 dark:text-jwblue-400 hover:underline">Back to All</button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                            ${filtered.map(item => createVideoCardHtml(item)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function resetFilter() {
+            document.getElementById('searchInput').value = '';
+            filterCategory('all');
+        }
+
+        // Search live listener
+        function setupSearchListener() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase().trim();
+                const hero = document.getElementById('heroSection');
+                const shelvesContainer = document.getElementById('contentContainer');
+                const searchContainer = document.getElementById('searchResultsContainer');
+                const searchGrid = document.getElementById('searchResultsGrid');
+                const searchCount = document.getElementById('searchCount');
+
+                if (query === '') {
+                    searchContainer.classList.add('hidden');
+                    hero.classList.remove('hidden');
+                    shelvesContainer.classList.remove('hidden');
+                    return;
+                }
+
+                hero.classList.add('hidden');
+                shelvesContainer.classList.add('hidden');
+                searchContainer.classList.remove('hidden');
+
+                const results = mediaDatabase.filter(item => 
+                    item.title.toLowerCase().includes(query) || 
+                    item.desc.toLowerCase().includes(query) ||
+                    item.categoryName.toLowerCase().includes(query)
+                );
+
+                searchCount.textContent = results.length;
+                if (results.length > 0) {
+                    searchGrid.innerHTML = results.map(item => createVideoCardHtml(item)).join('');
+                } else {
+                    searchGrid.innerHTML = `
+                        <div class="col-span-full py-16 text-center text-gray-500">
+                            <i class="fa-solid fa-folder-open text-4xl mb-3 text-gray-400"></i>
+                            <p class="text-lg font-medium">No media found matching "${query}"</p>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // Modal Controls
+        function openVideoModal(item) {
+            document.getElementById('modalTitle').textContent = item.title;
+            document.getElementById('modalCategoryBadge').textContent = item.categoryName;
+            document.getElementById('modalDuration').innerHTML = `<i class="fa-regular fa-clock mr-1"></i> Duration: ${item.duration}`;
+            document.getElementById('modalDesc').textContent = item.desc;
+            document.getElementById('totalDuration').textContent = item.duration;
+            document.getElementById('videoModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeVideoModal() {
+            document.getElementById('videoModal').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            // Reset player mock state
+            isPlaying = false;
+            document.getElementById('playPauseIcon').className = "fa-solid fa-play text-2xl ml-1";
+            document.getElementById('barPlayIcon').className = "fa-solid fa-play";
+            document.getElementById('playerStateText').textContent = "Click to Play Media Preview";
+        }
+
+        let isPlaying = false;
+        function togglePlayState() {
+            isPlaying = !isPlaying;
+            const playIcon = document.getElementById('playPauseIcon');
+            const barIcon = document.getElementById('barPlayIcon');
+            const stateText = document.getElementById('playerStateText');
+
+            if (isPlaying) {
+                playIcon.className = "fa-solid fa-pause text-2xl";
+                barIcon.className = "fa-solid fa-pause";
+                stateText.textContent = "Playing media stream...";
+                showNotification("Playing video stream simulation");
+            } else {
+                playIcon.className = "fa-solid fa-play text-2xl ml-1";
+                barIcon.className = "fa-solid fa-play";
+                stateText.textContent = "Playback paused";
+            }
+        }
+
+        function toggleFullscreen() {
+            showNotification("Fullscreen mode toggled");
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function setLanguage(lang) {
+            showNotification(`Language switched to ${lang}`);
+            closeModal('langModal');
+        }
+
+        function handleAuth(event) {
+            event.preventDefault();
+            closeModal('authModal');
+            showNotification("Successfully signed in to JW.ORG account");
+        }
+
+        function copyShareLink() {
+            const dummyUrl = window.location.href;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(dummyUrl).then(() => {
+                    showNotification("Link copied to clipboard!");
+                }).catch(() => {
+                    showNotification("Link copied successfully");
+                });
+            } else {
+                showNotification("Link copied successfully");
+            }
+        }
+
+        // Toast notification helper
+        function showNotification(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // Dark Mode toggle
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            html.classList.toggle('dark');
+            if (html.classList.contains('dark')) {
+                themeIcon.className = "fa-solid fa-sun";
+                localStorage.setItem('jw_theme', 'dark');
+            } else {
+                themeIcon.className = "fa-solid fa-moon";
+                localStorage.setItem('jw_theme', 'light');
+            }
+        }
+
+        // Check stored theme on load
+        if (localStorage.getItem('jw_theme') === 'dark' || (!localStorage.getItem('jw_theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            document.getElementById('themeIcon').className = "fa-solid fa-sun";
+        }
+
+        // Mobile Sidebar Toggles
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('-translate-x-full');
+            sidebarBackdrop.classList.toggle('hidden');
+        });
+
+        function closeMobileSidebar() {
+            sidebar.classList.add('-translate-x-full');
+            sidebarBackdrop.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
